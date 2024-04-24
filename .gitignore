@@ -1,2 +1,5 @@
 # ignore node modules
 node_modules/
+auth_info_baileys/
+logs.json
+.env

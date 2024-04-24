@@ -5,6 +5,7 @@ const fs = require('fs');
 const { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } = require("@google/generative-ai");
 require('dotenv').config()
 const Snaptik = require('snaptik')
+const youtubedl = require('youtube-dl-exec')
 
 exports.parseMention = (text) => [...text.matchAll(/@?([0-9]{5,16}|0)/g)].map((v) => v[1] + S_WHATSAPP_NET);
 
@@ -178,15 +179,52 @@ async function connectToWhatsApp() {
               const caption = `_Downloader Tiktok from @${downsnaptik.metadata.author_unique_id}_\nDescription : ${downsnaptik.metadata.title}`
               await sendFileFromUrl(sock, senderNumber, linkvideo, caption, m.messages[0], '', 'mp4')
             } else {
-              await sock.sendMessage(senderNumber, { text: "Error Lur" }, { quoted: m.messages[0] }, 2000);
+              await sock.sendMessage(senderNumber, { text: "Error fir some " }, { quoted: m.messages[0] }, 2000);
             }
           } catch (e) {
             console.log(e)
           }
         }
-        // } if (userIngroup && incommingMessage.includes('@6283842061886') && incommingMessage.includes('/')) {
-        //   run()
-        // }
+        else if (!userIngroup && incommingMessage.includes('.youtube')) {
+          console.log("Downloading YouTube video...");
+          try {
+            sock.sendMessage(senderNumber, { text: '📲 Downloading...' }, { quoted: m.messages[0] }, 2000);
+            const clearPrompt = incommingMessage.slice(9);
+            console.log("Clear Prompt:", clearPrompt);
+            const video = await youtubedl(clearPrompt, {
+              dumpSingleJson: true,
+              noCheckCertificates: true,
+              noWarnings: true,
+              preferFreeFormats: true,
+              addHeader: ['referer:youtube.com', 'user-agent:googlebot']
+            });
+
+
+
+            // Log relevant information about the video
+            const logData = {
+              title: video.title,
+              description: video.description,
+              url: video.requested_downloads[0].requested_formats[0].url
+            }
+
+            // Write log data to JSON file
+            const logFilePath = 'logs.json';
+            fs.writeFileSync(logFilePath, JSON.stringify(logData, null, 2));
+
+            // Send the downloaded video
+            const caption = "Downloader Youtube";
+            await sendFileFromUrl(sock, senderNumber, logData.url, logData.title ?? caption, m.messages[0], '', 'mp4');
+            console.log("Video Title:", video.title);
+            console.log("Video Description:", video.description);
+            console.log("Video URL:", video.requested_downloads[0].requested_formats[0].url);
+
+          } catch (e) {
+            console.log("Error:", e);
+          }
+        }
+
+
       } catch (error) {
         console.log(error)
         // connectToWhatsApp()
